@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Search</title>
+</head>
+<body>
+<form action="servlet/Search" method="GET">
+<br/>
+<input type="radio" name="range" value="filename" />标题
+<input type="radio" name="range" value="author" />作者
+<input type="radio" name="range" value="content" checked />内容
+&nbsp;&nbsp;
+<input type="checkbox" name="txt" value="txt" checked/>txt
+<input type="checkbox" name="doc" value="docx" checked/>dox
+<input type="checkbox" name="xls" value="xlsx" checked/>xls
+<input type="checkbox" name="pdf" value="pdf" checked/>pdf
+<input type="checkbox" name="ppt" value="pptx" checked/>ppt
+<br/><br/>
+Search：<input type="text" name="kw" />
+<input type="submit" value="summit" />
+</form>
+</body>
+</html>
