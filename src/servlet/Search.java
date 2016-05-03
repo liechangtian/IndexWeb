@@ -2,12 +2,15 @@ package servlet;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringReader;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
@@ -18,6 +21,7 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.highlight.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
@@ -79,6 +83,12 @@ public class Search extends HttpServlet {
 	            q.add(query1,Occur.MUST);
 	            q.add(query2,Occur.MUST);
 	            
+	            QueryScorer score= new QueryScorer(query1);
+	            Fragmenter fragmenter=new SimpleSpanFragmenter(score);
+	            Highlighter highlighter=new Highlighter(score);
+	            highlighter.setTextFragmenter(fragmenter);
+	            
+	            
 	            ScoreDoc[] hits = isearcher.search(q, null, 1000).scoreDocs;
 	            
 	        	out.println(docType +
@@ -93,10 +103,13 @@ public class Search extends HttpServlet {
 	        		    +"</body></html>");
 	            for (int i = 0; i < hits.length; i++) {
 	                Document hitDoc = isearcher.doc(hits[i].doc);
+	                String content=hitDoc.get("content");
+	                TokenStream tokenstream=analyzer.tokenStream("content", new StringReader(content));
+		            String str = highlighter.getBestFragment(tokenstream, content);
 	                out.println(
 	            			"<html>\n" +
 	            			"<body bgcolor=\"#f0f0f0\">\n" +"<br/>"+
-	            			hitDoc.get("filename")+"<br/>"+
+	            			hitDoc.get("filename")+"<br/>"+str+"<br/>"+
 	            			hitDoc.get("content")+"<br/>"+
 	            			hitDoc.get("path")+"<br/>"+
 	            			
