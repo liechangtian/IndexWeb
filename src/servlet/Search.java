@@ -85,9 +85,9 @@ public class Search extends HttpServlet {
 	            
 	            QueryScorer score= new QueryScorer(query1);
 	            Fragmenter fragmenter=new SimpleSpanFragmenter(score);
-	            Highlighter highlighter=new Highlighter(score);
+	            SimpleHTMLFormatter simpleHTMLFormatter = new SimpleHTMLFormatter("<font color='red'>", "</font>");
+	            Highlighter highlighter=new Highlighter(simpleHTMLFormatter,score);
 	            highlighter.setTextFragmenter(fragmenter);
-	            
 	            
 	            ScoreDoc[] hits = isearcher.search(q, null, 1000).scoreDocs;
 	            
@@ -99,19 +99,18 @@ public class Search extends HttpServlet {
 	        		    "<ul>\n" +
 	        		    "</ul>\n" +
 	        		    "  <li><b>¼ìË÷´Ê</b>£º"
-	        		    + keyword +"<br/>"+"<br/>"+"  <li><b>¼ìË÷½á¹û</b>£º"+"<br/>"
+	        		    + keyword +"<br/>"+"<br/>"+"  <li><b>¼ìË÷½á¹û</b>£º"+hits.length+"<br/>"
 	        		    +"</body></html>");
 	            for (int i = 0; i < hits.length; i++) {
 	                Document hitDoc = isearcher.doc(hits[i].doc);
-	                String content=hitDoc.get("content");
-	                TokenStream tokenstream=analyzer.tokenStream("content", new StringReader(content));
-		            String str = highlighter.getBestFragment(tokenstream, content);
+	                String text=hitDoc.get(field);
+	                TokenStream tokenstream=analyzer.tokenStream(field, new StringReader(text));
+		            String str = highlighter.getBestFragment(tokenstream, text);
 	                out.println(
 	            			"<html>\n" +
 	            			"<body bgcolor=\"#f0f0f0\">\n" +"<br/>"+
-	            			hitDoc.get("filename")+"<br/>"+str+"<br/>"+
-	            			hitDoc.get("content")+"<br/>"+
-	            			hitDoc.get("path")+"<br/>"+
+	            			"<font color='blue'>"+hitDoc.get("path")+"</font>"+"<br/>"+
+	            			str+"<br/>"+
 	            			
 	            			"</body></html>");
 	            }
