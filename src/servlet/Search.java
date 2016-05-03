@@ -11,14 +11,13 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.Term;
+import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
@@ -40,9 +39,10 @@ public class Search extends HttpServlet {
 		response.setContentType("text/html;charset=UTF-8");
 		
 		PrintWriter out = response.getWriter();
+		
 		String title ="ËÑË÷½á¹û";
+		String field=request.getParameter("field");
 		String keyword=(request.getParameter("kw"));
-		String range=(request.getParameter("range"));
 		String txt=(request.getParameter("txt"));
 		String doc=(request.getParameter("doc"));
 		String xls=(request.getParameter("xls"));
@@ -50,20 +50,30 @@ public class Search extends HttpServlet {
 		String ppt=(request.getParameter("ppt"));
 		String docType ="<!doctype html public \"-//w3c//dtd html 4.0 " +
 		"transitional//en\">\n";
-		 try{
+		
+		try{
 	            directory = FSDirectory.open(new File(INDEX_DIR));
 	            analyzer = new StandardAnalyzer(Version.LUCENE_40);
 	            DirectoryReader ireader = DirectoryReader.open(directory);
 	            IndexSearcher isearcher = new IndexSearcher(ireader);
 	    
-	            QueryParser parser1 = new QueryParser(Version.LUCENE_40, range, analyzer);
-	            Query query1 = parser1.parse(keyword);
+	           Query query1;
+	           if(field.equals("all")){
+	        	   String[] fields={"filename","content"};
+	        	   MultiFieldQueryParser mparser=new MultiFieldQueryParser(Version.LUCENE_40, fields, analyzer);
+		           query1 =mparser.parse(keyword);
+	           }
+	           else if(field.equals("filename")){
+	        	   QueryParser parser1 = new QueryParser(Version.LUCENE_40, "filename", analyzer);
+		           query1 = parser1.parse(keyword);
+
+	           }
+	           else{
+	        	   QueryParser parser1 = new QueryParser(Version.LUCENE_40, "content", analyzer);	        	   query1 = parser1.parse(keyword);
+	        	   query1 = parser1.parse(keyword);
+	           } 
 	            QueryParser parser2 = new QueryParser(Version.LUCENE_40, "type", analyzer);
 	            Query query2 = parser2.parse(txt+" "+doc+" "+xls+" "+pdf+" "+ppt);
-//	            Term t1=new Term(range,keyword);
-//	            TermQuery q1=new TermQuery(t1);
-//	            Term t2=new Term("type",xls);
-//	            TermQuery q2=new TermQuery(t2);
 	            
 	            BooleanQuery q=new BooleanQuery();
 	            q.add(query1,Occur.MUST);
@@ -86,7 +96,6 @@ public class Search extends HttpServlet {
 	                out.println(
 	            			"<html>\n" +
 	            			"<body bgcolor=\"#f0f0f0\">\n" +"<br/>"+
-	            			hitDoc.get("type")+"<br/>"+
 	            			hitDoc.get("filename")+"<br/>"+
 	            			hitDoc.get("content")+"<br/>"+
 	            			hitDoc.get("path")+"<br/>"+

@@ -7,10 +7,11 @@
 <body>
 <form action="servlet/Search" method="GET">
 <br/>
-<input type="radio" name="range" value="filename" />标题
-<input type="radio" name="range" value="author" />作者
-<input type="radio" name="range" value="content" checked />内容
-&nbsp;&nbsp;
+<input type="radio" name="field" value="all" checked/>所有
+<input type="radio" name="field" value="filename" />标题
+<input type="radio" name="field" value="content"  />内容
+&nbsp;&nbsp;&nbsp;&nbsp;
+
 <input type="checkbox" name="txt" value="txt" checked/>txt
 <input type="checkbox" name="doc" value="docx" checked/>dox
 <input type="checkbox" name="xls" value="xlsx" checked/>xls
