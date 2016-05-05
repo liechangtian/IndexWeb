@@ -106,7 +106,7 @@ public class Search extends HttpServlet {
 	                Document hitDoc = isearcher.doc(hits[i].doc);
 	                
 	                String text=hitDoc.get("filename");
-	                String text1=text.substring(0,text.lastIndexOf(".")+1);
+	                String text1=text.substring(0,text.lastIndexOf("."));
 	                String type=hitDoc.get("type");
 	                String text2=hitDoc.get("content");
 	                TokenStream tokenstream=analyzer.tokenStream("filename", new StringReader(text1));
