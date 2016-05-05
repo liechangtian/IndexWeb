@@ -105,23 +105,26 @@ public class Search extends HttpServlet {
 	            for (int i = 0; i < hits.length; i++) {
 	                Document hitDoc = isearcher.doc(hits[i].doc);
 	                
-	                String text1=hitDoc.get("filename");
+	                String text=hitDoc.get("filename");
+	                String text1=text.substring(0,text.lastIndexOf(".")+1);
+	                String type=hitDoc.get("type");
 	                String text2=hitDoc.get("content");
-	                TokenStream tokenstream1=analyzer.tokenStream("filename", new StringReader(text1));
+	                TokenStream tokenstream=analyzer.tokenStream("filename", new StringReader(text1));
 //		            TokenStream tokenstream2=analyzer.tokenStream("content", new StringReader(text2));
-		            String str1 = highlighter.getBestFragment(tokenstream1, text1);
-		            tokenstream1=analyzer.tokenStream("content", new StringReader(text2));
-		            String str2 = highlighter.getBestFragment(tokenstream1, text2);
-		           
+		            String str1 = highlighter.getBestFragment(tokenstream, text1);
+		            tokenstream=analyzer.tokenStream("content", new StringReader(text2));
+		            String str2 = highlighter.getBestFragment(tokenstream, text2);
+		            
 	               if(str1==null)
 	            	   str1=text1;
 	               if(str2==null)
             	       str2="";
+	               String path=hitDoc.get("path");
+		           String newpath=path.substring(0,path.lastIndexOf("\\")+1)+str1+"."+type;
 		            out.println(
 	            			"<html>\n" +
 	            			"<body bgcolor=\"#f0f0f0\">\n" +"<br/>"+
-	            			"<font color='blue'>"+hitDoc.get("path")+"</font>"+"<br/>"+
-	            			"&nbsp&nbsp"+str1+"<br/>"+
+	            			"<font color='blue'>"+newpath+"</font>"+"<br/>"+
 	            			"&nbsp&nbsp"+str2+"<br/>"+
 	            			
 	            			"</body></html>");
