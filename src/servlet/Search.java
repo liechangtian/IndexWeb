@@ -101,16 +101,28 @@ public class Search extends HttpServlet {
 	        		    "  <li><b>¼ìË÷´Ê</b>£º"
 	        		    + keyword +"<br/>"+"<br/>"+"  <li><b>¼ìË÷½á¹û</b>£º"+hits.length+"<br/>"
 	        		    +"</body></html>");
+	        	
 	            for (int i = 0; i < hits.length; i++) {
 	                Document hitDoc = isearcher.doc(hits[i].doc);
-	                String text=hitDoc.get(field);
-	                TokenStream tokenstream=analyzer.tokenStream(field, new StringReader(text));
-		            String str = highlighter.getBestFragment(tokenstream, text);
-	                out.println(
+	                
+	                String text1=hitDoc.get("filename");
+	                String text2=hitDoc.get("content");
+	                TokenStream tokenstream1=analyzer.tokenStream("filename", new StringReader(text1));
+//		            TokenStream tokenstream2=analyzer.tokenStream("content", new StringReader(text2));
+		            String str1 = highlighter.getBestFragment(tokenstream1, text1);
+		            tokenstream1=analyzer.tokenStream("content", new StringReader(text2));
+		            String str2 = highlighter.getBestFragment(tokenstream1, text2);
+		           
+	               if(str1==null)
+	            	   str1=text1;
+	               if(str2==null)
+            	       str2="";
+		            out.println(
 	            			"<html>\n" +
 	            			"<body bgcolor=\"#f0f0f0\">\n" +"<br/>"+
 	            			"<font color='blue'>"+hitDoc.get("path")+"</font>"+"<br/>"+
-	            			str+"<br/>"+
+	            			"&nbsp&nbsp"+str1+"<br/>"+
+	            			"&nbsp&nbsp"+str2+"<br/>"+
 	            			
 	            			"</body></html>");
 	            }
@@ -118,7 +130,8 @@ public class Search extends HttpServlet {
 	            directory.close();
 	            
 	        }catch(Exception e){
-	            e.printStackTrace();
+	            //e.printStackTrace();
+	        	System.out.println(e.getMessage());
 	            out.println(
             			"<html>\n" +
             			"<body bgcolor=\"#f0f0f0\">\n" +
