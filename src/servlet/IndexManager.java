@@ -8,6 +8,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.RandomAccessFile;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -44,6 +45,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 import org.apache.poi.hwpf.HWPFDocument;
+import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.hwpf.usermodel.Paragraph;
 import org.apache.poi.hwpf.usermodel.Range;
 import org.apache.poi.openxml4j.exceptions.OpenXML4JException;
@@ -70,6 +72,8 @@ import org.apache.poi.hslf.HSLFSlideShow;
 import org.apache.poi.hslf.model.Slide;  
 import org.apache.poi.hslf.model.TextRun;  
 import org.apache.poi.hslf.usermodel.SlideShow;
+import org.apache.poi.hssf.extractor.ExcelExtractor;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.openxmlformats.schemas.*;
 
 public class IndexManager{
@@ -96,11 +100,9 @@ public class IndexManager{
      * 创建当前文件目录的索引
      * @param path 当前文件目录
      * @return 是否成功
-     * @throws XmlException 
-     * @throws OpenXML4JException 
-     * @throws IOException 
+     * @throws Exception 
      */
-    public static boolean createIndex(String path) throws IOException, OpenXML4JException, XmlException{
+    public static boolean createIndex(String path) throws Exception{
         Date date1 = new Date();
         List<File> fileList = getFileList(path);
         for (File file : fileList) {
@@ -113,24 +115,38 @@ public class IndexManager{
                 
                 content += readTxt(file);
             
+            }else if("doc".equalsIgnoreCase(type)){
+            
+                content += readWord2003(file);
+            
             }else if("docx".equalsIgnoreCase(type)){
             
                 content += readWord2007(file);
+                type="doc";
             
+            }else if("xls".equalsIgnoreCase(type)){
+                
+                content += readExcel2003(file);
+                
             }else if("xlsx".equalsIgnoreCase(type)){
                 
                 content += readExcel2007(file);
-                
+                type="xls";
             }else if("pdf".equalsIgnoreCase(type)){
                 
                 content += pdf2String(file);
                 
+            }else if("ppt".equalsIgnoreCase(type)){
+                
+                content += readPPT2003(file);
+                
             }else if("pptx".equalsIgnoreCase(type)){
                 
                 content += readPPT2007(file);
-                
+                type="ppt";
             }
-            
+            System.out.print(type+"\n");
+
             System.out.println("name :"+file.getName());
             System.out.println("path :"+file.getPath());
             System.out.println("content :"+content);
@@ -226,20 +242,6 @@ public class IndexManager{
         return sb.toString().trim();  
     }  
        
-//    public static String txt2String(File file){
-//        String result = "";
-//        try{
-//            BufferedReader br = new BufferedReader(new FileReader(file));//构造一个BufferedReader类来读取文件
-//            String s = null;
-//            while((s = br.readLine())!=null){//使用readLine方法，一次读一行
-//                result = result + "\n" +s;
-//            }
-//            br.close();    
-//        }catch(Exception e){
-//            e.printStackTrace();
-//        }
-//        return result;
-//    }
     
     /**
      * 读取doc文件内容
@@ -247,34 +249,44 @@ public class IndexManager{
      * @return 返回文件内容
      * @throws IOException 
      */
+    public static String readWord2003(File file) throws Exception {  
+        String bodyText = null;  
+        InputStream inputStream = new FileInputStream(file.getPath());  
+        WordExtractor extractor = new WordExtractor(inputStream);   
+        bodyText = extractor.getText();  
+        extractor.close();
+        return bodyText;  
+    }  
     public static String  readWord2007(File file) throws IOException, OpenXML4JException, XmlException{
     	OPCPackage opcPackage = POIXMLDocument.openPackage(file.getPath());  
 		POIXMLTextExtractor ex = new XWPFWordExtractor(opcPackage);  
+		String bodyText=ex.getText();
 		ex.close();
-        return ex.getText(); 
+        return bodyText; 
     }
-//    public static String doc2String(File file){
-//        StringBuffer result = new StringBuffer("");
-//        try{
-//            FileInputStream fis = new FileInputStream(file);
-//            HWPFDocument doc = new HWPFDocument(fis);
-//            Range range=doc.getRange();
-//            int paragraphCount=range.numParagraphs();
-//            for(int i=0;i<paragraphCount;i++){
-//            	Paragraph pp=range.getParagraph(i);
-//            	result.append(pp.text());
-//            }
-//        }catch(Exception e){
-//            e.printStackTrace();
-//        }
-//        return result.toString().trim();
-//    }
+
     
     /**
      * 读取xls文件内容
      * @param file 想要读取的文件对象
      * @return 返回文件内容
      */
+    public static String readExcel2003(File file) throws IOException {  
+        InputStream inputStream = null;  
+        String content = null;  
+        try {  
+            inputStream = new FileInputStream(file.getPath());  
+            HSSFWorkbook wb = new HSSFWorkbook(inputStream);  
+            ExcelExtractor extractor = new ExcelExtractor(wb);  
+            extractor.setFormulasNotResults(true);  
+            extractor.setIncludeSheetNames(false);  
+            content = extractor.getText();  
+            extractor.close();
+        } catch (FileNotFoundException e) {  
+            e.printStackTrace();  
+        }  
+        return content;  
+    } 
     public static String readExcel2007(File file) throws IOException {  
         StringBuffer content = new StringBuffer();  
         // 构造 XSSFWorkbook 对象，strPath 传入文件路径  
@@ -310,55 +322,7 @@ public class IndexManager{
         xwb.close();
         return content.toString();  
     }  
-//    public static String xls2String(File file){
-//        String result = "";
-//        try{
-//            FileInputStream fis = new FileInputStream(file);   
-//            StringBuilder sb = new StringBuilder();   
-//            jxl.Workbook rwb = Workbook.getWorkbook(fis);   
-//            Sheet[] sheet = rwb.getSheets();   
-//            for (int i = 0; i < sheet.length; i++) {   
-//                Sheet rs = rwb.getSheet(i);   
-//                for (int j = 0; j < rs.getRows(); j++) {   
-//                   Cell[] cells = rs.getRow(j);   
-//                   for(int k=0;k<cells.length;k++)   
-//                   sb.append(cells[k].getContents());   
-//                }   
-//            }   
-//            fis.close();   
-//            result += sb.toString();
-//        }catch(Exception e){
-//            e.printStackTrace();
-//        }
-//        return result;
-//    }
-//    
-    /**
-     * 读取pdf文件内容
-     * @param file 想要读取的文件对象
-     * @return 返回文件内容
-     */
-    public static String pdf2String(File file){
-        String result = "";
-        try{
-        	StringBuffer content=new StringBuffer("");
-	        FileInputStream fis=new FileInputStream(file);
-	        PDFParser p = new PDFParser(fis);
-	        
-	        p.parse();
-	        PDFTextStripper ts=new PDFTextStripper();
-	        content.append(ts.getText(p.getPDDocument()));
-	        	
-	        //fis.close();   
-	        result += content.toString().trim();
-	        
-	        fis.close();
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-        return result;
-    }
-    
+
     /**
      * 读取ppt文件内容
      * @param file 想要读取的文件对象
@@ -368,64 +332,8 @@ public class IndexManager{
 	public static String readPPT2007(File file) throws IOException, XmlException, OpenXML4JException {
         return new XSLFPowerPointExtractor(POIXMLDocument.openPackage(file.getPath())).getText();   
    }
-//    public static String getTextFromPPT2007(String path) {
-//        XSLFSlideShow slideShow;
-//        String reusltString=null;
-//        try {
-//            slideShow = new XSLFSlideShow(path);
-//            XMLSlideShow xmlSlideShow = new XMLSlideShow();
-//            XSLFSlide[] slides = xmlSlideShow.getSlides();
-//            StringBuilder sb = new StringBuilder();
-//            for (XSLFSlide slide : slides) {
-//                CTSlide rawSlide = slide._getCTSlide();
-//                CTGroupShape gs = rawSlide.getCSld().getSpTree();
-//                CTShape[] shapes = gs.getSpArray();
-//                for (CTShape shape : shapes) {
-//                    CTTextBody tb = shape.getTxBody();
-//                    if (null == tb)
-//                        continue;
-//                    CTTextParagraph[] paras = tb.getPArray();
-//                    for (CTTextParagraph textParagraph : paras) {
-//                        CTRegularTextRun[] textRuns = textParagraph.getRArray();
-//                        for (CTRegularTextRun textRun : textRuns) {
-//                            sb.append(textRun.getT());
-//                        }
-//                    }
-//                }
-//            }
-//        reusltString=sb.toString();
-//        } catch (OpenXML4JException e) {
-//            // TODO Auto-generated catch block
-//            e.printStackTrace();
-//        } catch (IOException e) {
-//            // TODO Auto-generated catch block
-//            e.printStackTrace();
-//        } catch (XmlException e) {
-//            // TODO Auto-generated catch block
-//            e.printStackTrace();
-//        }
-//
-//        return reusltString;
-//    }
-    
-//    public static String readPowerPoint(File file) {  
-//        StringBuffer content = new StringBuffer("");  
-//        try {  
-//            SlideShow ss = new SlideShow(new HSLFSlideShow(new FileInputStream(file.getPath())));// is  
-//            // 为文件的InputStream，建立SlideShow  
-//            Slide[] slides = ss.getSlides();// 获得每一张幻灯片  
-//            for (int i = 0; i < slides.length; i++) {  
-//                TextRun[] t = slides[i].getTextRuns();// 为了取得幻灯片的文字内容，建立TextRun  
-//                for (int j = 0; j < t.length; j++) {  
-//                    content.append(t[j].getText());// 这里会将文字内容加到content中去  
-//                }  
-//            }  
-//        } catch (Exception ex) {  
-//            System.out.println(ex.toString());  
-//        }  
-//        return content.toString();  
-//    }  
-    public static String ppt2String(File file){
+
+    public static String readPPT2003(File file){
         String result = "";
         try{
         	StringBuffer content=new StringBuffer("");
@@ -445,7 +353,39 @@ public class IndexManager{
         return result;
     }
     
+     
+    /**
+     * 读取pdf文件内容
+     * @param file 想要读取的文件对象
+     * @return 返回文件内容
+     */
+    public static String pdf2String(File file) throws IOException {  
+        StringBuffer content = new StringBuffer("");// 文档内容  
+        PDDocument pdfDocument = null;  
+        try {  
+            FileInputStream fis = new FileInputStream(file);  
+            PDFTextStripper stripper = new PDFTextStripper();  
+            pdfDocument = PDDocument.load(fis);  
+            StringWriter writer = new StringWriter();  
+            stripper.writeText(pdfDocument, writer);  
+            content.append(writer.getBuffer().toString());  
+            fis.close();  
+        } catch (java.io.IOException e) {  
+            System.err.println("IOException=" + e);  
+            System.exit(1);  
+        } finally {  
+            if (pdfDocument != null) {  
+                org.apache.pdfbox.cos.COSDocument cos = pdfDocument.getDocument();  
+                cos.close();  
+                pdfDocument.close();  
+            }  
+        }  
+        return content.toString();  
+  
+    }
+
     
+   
     
     
    
@@ -484,6 +424,8 @@ public class IndexManager{
             return true;
         }else if (fileName.lastIndexOf(".ppt") > 0) {
             return true;
+        }else if (fileName.lastIndexOf(".pptx") > 0) {
+            return true;
         }
         else return false;
     }
@@ -508,7 +450,7 @@ public class IndexManager{
         file.delete();
         return true;
     }
-    public static void main(String[] args) throws IOException, OpenXML4JException, XmlException{
+    public static void main(String[] args) throws Exception{
         File fileIndex = new File(INDEX_DIR);
         if(deleteDir(fileIndex)){
             fileIndex.mkdir();
