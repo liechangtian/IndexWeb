@@ -3,6 +3,7 @@ package servlet;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
+import java.util.List;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -41,7 +42,6 @@ public class Search extends HttpServlet {
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// 设置响应内容类型
 		response.setContentType("text/html;charset=UTF-8");
-		
 		PrintWriter out = response.getWriter();
 		
 		String title ="搜索结果";
@@ -131,7 +131,8 @@ public class Search extends HttpServlet {
 	            }
 	            ireader.close();
 	            directory.close();
-	            
+	            out.flush();
+	            out.close();
 	        }catch(Exception e){
 	            //e.printStackTrace();
 	        	System.out.println(e.getMessage());
@@ -143,5 +144,44 @@ public class Search extends HttpServlet {
 	        }
 	
 	}
-
+    protected void doPost(HttpServletRequest request,HttpServletResponse response)throws ServletException, IOException{
+    	response.setContentType("text/html;charset=UTF-8");
+		PrintWriter out = response.getWriter();
+		String docType ="<!doctype html public \"-//w3c//dtd html 4.0 " +
+				"transitional//en\">\n";
+		String DATA_DIR=request.getParameter("DATA_DIR");
+		INDEX_DIR=request.getParameter("INDEX_DIR");
+		
+		try{
+			IndexManager.setpath(DATA_DIR, INDEX_DIR);
+			File fileIndex = new File(INDEX_DIR);
+            if(IndexManager.deleteDir(fileIndex)){
+            fileIndex.mkdir();
+           }else{
+              fileIndex.mkdir();
+           }
+           List<File> fs=IndexManager.getFileList(INDEX_DIR);
+           for (File file : fs)
+        	   file.delete();
+           IndexManager.createIndex(DATA_DIR);
+           out.println(docType +
+       		    "<html>\n" +
+       		    "<head><title>" + "索引结果"+ "</title></head>\n" +
+       		    "<body bgcolor=\"#f0f0f0\">\n" +
+       		    "<h1 align=\"center\">" + "索引成功"+"\n"+"</h1>\n" +
+       		    "<ul>\n" +
+       		    "</ul>\n" +
+       		    "  <li><b>文件路径</b>："
+       		    + DATA_DIR +"<br/>"+"<br/>"+"  <li><b>索引路径</b>："+INDEX_DIR+"<br/>"
+       		    +"</body></html>");
+        }catch(Exception e){
+            //e.printStackTrace();
+        	System.out.println(e.getMessage());
+            out.println(
+        			"<html>\n" +
+        			"<body bgcolor=\"#f0f0f0\">\n" +
+        			"<h1 align=\"center\">" + "索引异常"+"\n"+"</h1>\n"+ 
+        			"</body></html>");
+        }
+}
 }

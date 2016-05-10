@@ -80,12 +80,13 @@ public class IndexManager{
     private static IndexManager indexManager;
     private static String content="";
     
-    private static String INDEX_DIR = "C:\\LCT\\Work\\data\\LuceneIndex";
     private static String DATA_DIR = "C:\\LCT\\Work\\data\\LuceneData";
+    private static String INDEX_DIR = "C:\\LCT\\Work\\data\\LuceneIndex";
     private static Analyzer analyzer = null;
     private static Directory directory = null;
     private static IndexWriter indexWriter = null;
     
+
     /**
      * 创建索引管理器
      * @return 返回索引管理器对象
@@ -134,7 +135,7 @@ public class IndexManager{
                 type="xls";
             }else if("pdf".equalsIgnoreCase(type)){
                 
-                content += pdf2String(file);
+                content += readPdf(file);
                 
             }else if("ppt".equalsIgnoreCase(type)){
                 
@@ -359,7 +360,7 @@ public class IndexManager{
      * @param file 想要读取的文件对象
      * @return 返回文件内容
      */
-    public static String pdf2String(File file) throws IOException {  
+    public static String readPdf(File file) throws IOException {  
         StringBuffer content = new StringBuffer("");// 文档内容  
         PDDocument pdfDocument = null;  
         try {  
@@ -449,6 +450,11 @@ public class IndexManager{
         }
         file.delete();
         return true;
+    }
+    
+    public static void setpath(String a,String b){
+    	DATA_DIR=a;
+    	INDEX_DIR=b;
     }
     public static void main(String[] args) throws Exception{
         File fileIndex = new File(INDEX_DIR);
