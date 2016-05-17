@@ -12,6 +12,8 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import jxl.Cell;
 import jxl.Sheet;
@@ -145,6 +147,10 @@ public class IndexManager{
                 
                 content += readPPT2007(file);
                 type="ppt";
+            }else if("html".equalsIgnoreCase(type)){
+                
+                content += readHtml(file);
+                type="html";
             }
             System.out.print(type+"\n");
 
@@ -384,7 +390,94 @@ public class IndexManager{
         return content.toString();  
   
     }
+  //提取HTML文件的文本内容
+		private static String readHtml(File file) 
+	    { 
+	         
+	              String textStr =""; 
+	              Pattern p_script; 
+	              Matcher m_script; 
+	              Pattern p_style; 
+	              Matcher m_style; 
+	              Pattern p_html; 
+	              Matcher m_html;
+	              Pattern p_houhtml; 
+	              Matcher m_houhtml;
+	              Pattern p_spe; 
+	              Matcher m_spe;
+	              Pattern p_blank; 
+	              Matcher m_blank;
+	              Pattern p_table; 
+	              Matcher m_table;
+	              Pattern p_enter; 
+	              Matcher m_enter;
+	           
+	              try { 
+	               String regEx_script = "<[\\s]*?script[^>]*?>[\\s\\S]*?<[\\s]*?\\/[\\s]*?script[\\s]*?>"; 
+	               //定义script的正则表达式.
+	               String regEx_style = "<[\\s]*?style[^>]*?>[\\s\\S]*?<[\\s]*?\\/[\\s]*?style[\\s]*?>"; 
+	               //定义style的正则表达式. 
+	               String regEx_html = "<[^>]+>"; 
+	               //定义HTML标签的正则表达式 
+	               String regEx_houhtml = "/[^>]+>"; 
+	               //定义HTML标签的正则表达式 
+	               String regEx_spe="\\&[^;]+;";
+	               //定义特殊符号的正则表达式
+	               String regEx_blank=" +";
+	               //定义多个空格的正则表达式
+	               String regEx_table="\t+";
+	               //定义多个制表符的正则表达式
+	               String regEx_enter="\n+";
+	               //定义多个回车的正则表达式
+	             
+	               BufferedReader br = new BufferedReader(new FileReader(file));//构造一个BufferedReader类来读取文件
+	  	        String s = null;
+	  	        String htmlStr = "";
+	            while((s = br.readLine())!=null){//使用readLine方法，一次读一行
+	            	htmlStr = htmlStr + "\n" +s;
+	            }
+	            br.close(); 
+	               p_script = Pattern.compile(regEx_script,Pattern.CASE_INSENSITIVE); 
+	               m_script = p_script.matcher(htmlStr); 
+	               htmlStr = m_script.replaceAll(""); //过滤script标签
 
+	               p_style = Pattern.compile(regEx_style,Pattern.CASE_INSENSITIVE); 
+	               m_style = p_style.matcher(htmlStr); 
+	               htmlStr = m_style.replaceAll(""); //过滤style标签 
+	              
+	               p_html = Pattern.compile(regEx_html,Pattern.CASE_INSENSITIVE); 
+	               m_html = p_html.matcher(htmlStr); 
+	               htmlStr = m_html.replaceAll(""); //过滤html标签 
+	               
+	               p_houhtml = Pattern.compile(regEx_houhtml,Pattern.CASE_INSENSITIVE); 
+	               m_houhtml = p_houhtml.matcher(htmlStr); 
+	               htmlStr = m_houhtml.replaceAll(""); //过滤html标签 
+	               
+	               p_spe = Pattern.compile(regEx_spe,Pattern.CASE_INSENSITIVE); 
+	               m_spe = p_spe.matcher(htmlStr); 
+	               htmlStr = m_spe.replaceAll(""); //过滤特殊符号 
+	               
+	               p_blank = Pattern.compile(regEx_blank,Pattern.CASE_INSENSITIVE); 
+	               m_blank = p_blank.matcher(htmlStr); 
+	               htmlStr = m_blank.replaceAll(" "); //过滤过多的空格
+	               
+	               p_table = Pattern.compile(regEx_table,Pattern.CASE_INSENSITIVE); 
+	               m_table = p_table.matcher(htmlStr); 
+	               htmlStr = m_table.replaceAll(" "); //过滤过多的制表符
+
+	               p_enter = Pattern.compile(regEx_enter,Pattern.CASE_INSENSITIVE); 
+	               m_enter = p_enter.matcher(htmlStr); 
+	               htmlStr = m_enter.replaceAll(" "); //过滤过多的制表符
+	               
+	               textStr = htmlStr; 
+	              
+	              }catch(Exception e) 
+	              { 
+	                    System.err.println("Html2Text: " + e.getMessage()); 
+	              } 
+	           
+	              return textStr;//返回文本字符串 
+	    }
     
    
     
@@ -426,6 +519,8 @@ public class IndexManager{
         }else if (fileName.lastIndexOf(".ppt") > 0) {
             return true;
         }else if (fileName.lastIndexOf(".pptx") > 0) {
+            return true;
+        }else if (fileName.lastIndexOf(".html") > 0) {
             return true;
         }
         else return false;

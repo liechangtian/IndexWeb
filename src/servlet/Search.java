@@ -52,6 +52,7 @@ public class Search extends HttpServlet {
 		String xls=(request.getParameter("xls"));
 		String pdf=(request.getParameter("pdf"));
 		String ppt=(request.getParameter("ppt"));
+		String html=(request.getParameter("html"));
 		String docType ="<!doctype html public \"-//w3c//dtd html 4.0 " +
 		"transitional//en\">\n";
 		
@@ -77,7 +78,7 @@ public class Search extends HttpServlet {
 	        	   query1 = parser1.parse(keyword);
 	           } 
 	            QueryParser parser2 = new QueryParser(Version.LUCENE_40, "type", analyzer);
-	            Query query2 = parser2.parse(txt+" "+doc+" "+xls+" "+pdf+" "+ppt);
+	            Query query2 = parser2.parse(txt+" "+doc+" "+xls+" "+pdf+" "+ppt+" "+html);
 	            
 	            BooleanQuery q=new BooleanQuery();
 	            q.add(query1,Occur.MUST);
