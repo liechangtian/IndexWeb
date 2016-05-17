@@ -147,7 +147,7 @@ public class IndexManager{
                 
                 content += readPPT2007(file);
                 type="ppt";
-            }else if("html".equalsIgnoreCase(type)){
+            }else if("html".equalsIgnoreCase(type)||"htm".equalsIgnoreCase(type)||"xhtml".equalsIgnoreCase(type)){
                 
                 content += readHtml(file);
                 type="html";
@@ -521,6 +521,10 @@ public class IndexManager{
         }else if (fileName.lastIndexOf(".pptx") > 0) {
             return true;
         }else if (fileName.lastIndexOf(".html") > 0) {
+            return true;
+        }else if (fileName.lastIndexOf(".htm") > 0) {
+            return true;
+        }else if (fileName.lastIndexOf(".xhtml") > 0) {
             return true;
         }
         else return false;
