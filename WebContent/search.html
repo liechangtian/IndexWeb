@@ -7,16 +7,21 @@
 <body>
 <form action="servlet/Search" method="GET">
 <br/>
+请设置文件路径及索引路径：（格式如C:\\***\\***\\***）<br/><br/>
+文件路径：<input type="text" name="DATA_DIR" style="width:300px"/><br/><br/>
+索引路径：<input type="text" name="INDEX_DIR" style="width:300px"/><br/><br/>
+<input type="checkbox" name="freshflag" value="fresh" checked/>刷新索引
+<br/><br/>
 <input type="radio" name="field" value="all" checked/>所有
 <input type="radio" name="field" value="filename" />标题
 <input type="radio" name="field" value="content"  />内容
 &nbsp;&nbsp;&nbsp;&nbsp;
 
 <input type="checkbox" name="txt" value="txt" checked/>txt
-<input type="checkbox" name="doc" value="docx" checked/>dox
-<input type="checkbox" name="xls" value="xlsx" checked/>xls
+<input type="checkbox" name="doc" value="doc" checked/>dox
+<input type="checkbox" name="xls" value="xls" checked/>xls
 <input type="checkbox" name="pdf" value="pdf" checked/>pdf
-<input type="checkbox" name="ppt" value="pptx" checked/>ppt
+<input type="checkbox" name="ppt" value="ppt" checked/>ppt
 <input type="checkbox" name="html" value="html" checked/>html
 <br/><br/>
 Search：<input type="text" name="kw" />

@@ -7,25 +7,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.RandomAccessFile;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import jxl.Cell;
-import jxl.Sheet;
-import jxl.Workbook;
-
-import org.apache.pdfbox.io.RandomAccessRead;
-import org.apache.pdfbox.pdfparser.PDFParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.util.*;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -33,41 +23,23 @@ import java.io.InputStreamReader;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.document.Field.Store;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
-import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
-import org.apache.poi.hwpf.usermodel.Paragraph;
-import org.apache.poi.hwpf.usermodel.Range;
 import org.apache.poi.openxml4j.exceptions.OpenXML4JException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
-import org.apache.poi.xslf.XSLFSlideShow;
 import org.apache.poi.xslf.extractor.XSLFPowerPointExtractor;
-import org.apache.poi.xslf.usermodel.XMLSlideShow;
-import org.apache.poi.xslf.usermodel.XSLFSlide;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.xmlbeans.XmlException;
-import org.openxmlformats.schemas.drawingml.x2006.main.CTRegularTextRun;
-import org.openxmlformats.schemas.drawingml.x2006.main.CTTextBody;
-import org.openxmlformats.schemas.drawingml.x2006.main.CTTextParagraph;
-import org.openxmlformats.schemas.drawingml.x2006.spreadsheetDrawing.CTGroupShape;
-import org.openxmlformats.schemas.presentationml.x2006.main.CTShape;
-import org.openxmlformats.schemas.presentationml.x2006.main.CTSlide;
 import org.apache.poi.POIXMLDocument;
 import org.apache.poi.POIXMLTextExtractor;
 import org.apache.poi.hslf.HSLFSlideShow;  
@@ -76,19 +48,16 @@ import org.apache.poi.hslf.model.TextRun;
 import org.apache.poi.hslf.usermodel.SlideShow;
 import org.apache.poi.hssf.extractor.ExcelExtractor;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.openxmlformats.schemas.*;
 
 public class IndexManager{
     private static IndexManager indexManager;
-    private static String content="";
-    
-    private static String DATA_DIR = "C:\\LCT\\Work\\data\\LuceneData";
-    private static String INDEX_DIR = "C:\\LCT\\Work\\data\\LuceneIndex";
-    private static Analyzer analyzer = null;
+    private static String content="";//存储字符串化后的文件内容
+    private static String DATA_DIR = "";//文件存放路径
+    private static String INDEX_DIR = "";//生成索引文件的存储路径
+    private static Analyzer analyzer = null;//语法分析器
     private static Directory directory = null;
     private static IndexWriter indexWriter = null;
     
-
     /**
      * 创建索引管理器
      * @return 返回索引管理器对象
@@ -106,138 +75,92 @@ public class IndexManager{
      * @throws Exception 
      */
     public static boolean createIndex(String path) throws Exception{
-        Date date1 = new Date();
+        analyzer = new StandardAnalyzer(Version.LUCENE_40);//初始化词法分析器
+        directory = FSDirectory.open(new File(INDEX_DIR));//索引存放路径
+
+        File indexFile = new File(INDEX_DIR);
+        if (!indexFile.exists()) {
+            indexFile.mkdirs();
+        }
+        //配置indexWriter，参数为Lucene版本和分析器
+        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_40, analyzer);
+        indexWriter = new IndexWriter(directory, config);
+        
         List<File> fileList = getFileList(path);
         for (File file : fileList) {
             content = "";
-            //获取文件后缀
+           
+            //获取文件类型，并根据文件类型调用不同的方法读取文件
             String fileName=file.getName();
             String type = fileName.substring(fileName.lastIndexOf(".")+1);
-            System.out.print(type+"\n");
-            if("txt".equalsIgnoreCase(type)){
-                
-                content += readTxt(file);
-            
-            }else if("doc".equalsIgnoreCase(type)){
-            
-                content += readWord2003(file);
-            
-            }else if("docx".equalsIgnoreCase(type)){
-            
-                content += readWord2007(file);
-                type="doc";
-            
-            }else if("xls".equalsIgnoreCase(type)){
-                
-                content += readExcel2003(file);
-                
-            }else if("xlsx".equalsIgnoreCase(type)){
-                
-                content += readExcel2007(file);
-                type="xls";
-            }else if("pdf".equalsIgnoreCase(type)){
-                
-                content += readPdf(file);
-                
-            }else if("ppt".equalsIgnoreCase(type)){
-                
-                content += readPPT2003(file);
-                
-            }else if("pptx".equalsIgnoreCase(type)){
-                
-                content += readPPT2007(file);
-                type="ppt";
-            }else if("html".equalsIgnoreCase(type)||"htm".equalsIgnoreCase(type)||"xhtml".equalsIgnoreCase(type)){
-                
-                content += readHtml(file);
-                type="html";
+            switch(type){
+            case "txt":
+            	content += readTxt(file);
+            	break;
+            case "doc":
+            	content += readWord2003(file);
+            	break;
+            case "docx":
+            	content += readWord2007(file);
+            	type="doc";//类型存储为doc
+            	break;
+            case "xls":
+            	content += readExcel2003(file);
+            	break;
+            case "xlsx":
+            	content += readExcel2007(file);
+            	type="xls";//类型存储为xls
+            	break;
+            case "pdf":
+            	content += readPdf(file);
+            	break;
+            case "ppt":
+            	content += readPPT2003(file);
+            	break;
+            case "pptx":
+            	content += readPPT2007(file);
+            	type="ppt";//类型存储为ppt
+            	break;
+            case "htm":
+            	content += readHtml(file);
+            	type="html";//类型存储为html
+            	break;
+            case "html":
+            	content += readHtml(file);
+            	break;
+            default:type="";
             }
-            System.out.print(type+"\n");
 
-            System.out.println("name :"+file.getName());
-            System.out.println("path :"+file.getPath());
-            System.out.println("content :"+content);
-            System.out.println();
-            
-            
-            try{
-                analyzer = new StandardAnalyzer(Version.LUCENE_40);
-                directory = FSDirectory.open(new File(INDEX_DIR));
-    
-                File indexFile = new File(INDEX_DIR);
-                if (!indexFile.exists()) {
-                    indexFile.mkdirs();
-                }
-                IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_40, analyzer);
-                indexWriter = new IndexWriter(directory, config);
-                
-                Document document = new Document();
-                document.add(new TextField("filename", file.getName(), Store.YES));
-                document.add(new TextField("content", content, Store.YES));
-                document.add(new TextField("path", file.getPath(), Store.YES));
-                document.add(new TextField("type", type, Store.YES));
-                indexWriter.addDocument(document);
-                indexWriter.commit();
-                closeWriter();
-    
-                
-            }catch(Exception e){
-                e.printStackTrace();
-            }
+            //创建document，分别向其中添加域：文件名、文件内容、文件路径、文件类型（不区分2003和2007版本），然后通过indexWriter把document对象写入索引。
+            Document document = new Document();
+            document.add(new TextField("filename", file.getName(), Store.YES));
+            document.add(new TextField("content", content, Store.YES));
+            document.add(new TextField("path", file.getPath(), Store.YES));
+            document.add(new TextField("type", type, Store.YES));
+            indexWriter.addDocument(document);
+            indexWriter.commit();
             content = "";
         }
-      
-        Date date2 = new Date();
-        System.out.println("创建索引-----耗时：" + (date2.getTime() - date1.getTime()) + "ms\n");
+        closeWriter();//关闭indexWriter
         return true;
     }
     
-    /**
-     * 查找索引，返回符合条件的文件
-     * @param text 查找的字符串
-     * @return 符合条件的文件List
-     */
-    public static void searchIndex(String text){
-        Date date1 = new Date();
-        try{
-            directory = FSDirectory.open(new File(INDEX_DIR));
-            analyzer = new StandardAnalyzer(Version.LUCENE_40);
-            DirectoryReader ireader = DirectoryReader.open(directory);
-            IndexSearcher isearcher = new IndexSearcher(ireader);
-    
-            QueryParser parser = new QueryParser(Version.LUCENE_40, "content", analyzer);
-            Query query = parser.parse(text);
-            
-            ScoreDoc[] hits = isearcher.search(query, null, 1000).scoreDocs;
-        
-            for (int i = 0; i < hits.length; i++) {
-                Document hitDoc = isearcher.doc(hits[i].doc);
-                System.out.println("——————————————————");
-                System.out.println(hitDoc.get("filename"));
-                System.out.println(hitDoc.get("content"));
-                System.out.println(hitDoc.get("path"));
-                System.out.println("————————————————————————————————");
-            }
-            ireader.close();
-            directory.close();
-        }catch(Exception e){
-            e.printStackTrace();
+    private static void closeWriter() throws Exception {
+        if (indexWriter != null) {
+            indexWriter.close();
         }
-        Date date2 = new Date();
-        System.out.println("查看索引-----耗时：" + (date2.getTime() - date1.getTime()) + "ms\n");
     }
-    
-    
     /**
      * 读取txt文件的内容
      * @param file 想要读取的文件对象
      * @return 返回文件内容
      */
-    public static String readTxt(File file) throws IOException {  
+    private static String readTxt(File file) throws IOException {  
         StringBuffer sb = new StringBuffer("");  
         InputStream is = new FileInputStream(file.getPath());  
         // 必须设置成GBK，否则将出现乱码  
         BufferedReader reader = new BufferedReader(new InputStreamReader(is, "GBK"));  
+        //逐行读入数据
         try {  
             String line = "";  
             while ((line = reader.readLine()) != null) {  
@@ -246,7 +169,7 @@ public class IndexManager{
         } catch (FileNotFoundException e) {  
             e.printStackTrace();  
         }  
-        return sb.toString().trim();  
+        return sb.toString().trim();  //将sb转换为字符串并返回
     }  
        
     
@@ -256,7 +179,7 @@ public class IndexManager{
      * @return 返回文件内容
      * @throws IOException 
      */
-    public static String readWord2003(File file) throws Exception {  
+    private static String readWord2003(File file) throws Exception {  
         String bodyText = null;  
         InputStream inputStream = new FileInputStream(file.getPath());  
         WordExtractor extractor = new WordExtractor(inputStream);   
@@ -264,7 +187,7 @@ public class IndexManager{
         extractor.close();
         return bodyText;  
     }  
-    public static String  readWord2007(File file) throws IOException, OpenXML4JException, XmlException{
+    private static String  readWord2007(File file) throws IOException, OpenXML4JException, XmlException{
     	OPCPackage opcPackage = POIXMLDocument.openPackage(file.getPath());  
 		POIXMLTextExtractor ex = new XWPFWordExtractor(opcPackage);  
 		String bodyText=ex.getText();
@@ -278,7 +201,7 @@ public class IndexManager{
      * @param file 想要读取的文件对象
      * @return 返回文件内容
      */
-    public static String readExcel2003(File file) throws IOException {  
+    private static String readExcel2003(File file) throws IOException {  
         InputStream inputStream = null;  
         String content = null;  
         try {  
@@ -294,7 +217,7 @@ public class IndexManager{
         }  
         return content;  
     } 
-    public static String readExcel2007(File file) throws IOException {  
+    private static String readExcel2007(File file) throws IOException {  
         StringBuffer content = new StringBuffer();  
         // 构造 XSSFWorkbook 对象，strPath 传入文件路径  
         XSSFWorkbook xwb = new XSSFWorkbook(file.getPath());  
@@ -330,17 +253,13 @@ public class IndexManager{
         return content.toString();  
     }  
 
+    
     /**
      * 读取ppt文件内容
      * @param file 想要读取的文件对象
      * @return 返回文件内容
      */
-    @SuppressWarnings("resource")
-	public static String readPPT2007(File file) throws IOException, XmlException, OpenXML4JException {
-        return new XSLFPowerPointExtractor(POIXMLDocument.openPackage(file.getPath())).getText();   
-   }
-
-    public static String readPPT2003(File file){
+    private static String readPPT2003(File file){
         String result = "";
         try{
         	StringBuffer content=new StringBuffer("");
@@ -359,6 +278,12 @@ public class IndexManager{
         }  
         return result;
     }
+    @SuppressWarnings("resource")
+    private static String readPPT2007(File file) throws IOException, XmlException, OpenXML4JException {
+        return new XSLFPowerPointExtractor(POIXMLDocument.openPackage(file.getPath())).getText();   
+   }
+
+  
     
      
     /**
@@ -366,7 +291,7 @@ public class IndexManager{
      * @param file 想要读取的文件对象
      * @return 返回文件内容
      */
-    public static String readPdf(File file) throws IOException {  
+    private static String readPdf(File file) throws IOException {  
         StringBuffer content = new StringBuffer("");// 文档内容  
         PDDocument pdfDocument = null;  
         try {  
@@ -390,7 +315,13 @@ public class IndexManager{
         return content.toString();  
   
     }
-  //提取HTML文件的文本内容
+    
+    
+    /**
+     * 读取htm和html文件内容
+     * @param file 想要读取的文件对象
+     * @return 返回文件内容
+     */
 		private static String readHtml(File file) 
 	    { 
 	         
@@ -413,22 +344,22 @@ public class IndexManager{
 	              Matcher m_enter;
 	           
 	              try { 
-	               String regEx_script = "<[\\s]*?script[^>]*?>[\\s\\S]*?<[\\s]*?\\/[\\s]*?script[\\s]*?>"; 
 	               //定义script的正则表达式.
-	               String regEx_style = "<[\\s]*?style[^>]*?>[\\s\\S]*?<[\\s]*?\\/[\\s]*?style[\\s]*?>"; 
+	               String regEx_script = "<[\\s]*?script[^>]*?>[\\s\\S]*?<[\\s]*?\\/[\\s]*?script[\\s]*?>"; 
 	               //定义style的正则表达式. 
+	               String regEx_style = "<[\\s]*?style[^>]*?>[\\s\\S]*?<[\\s]*?\\/[\\s]*?style[\\s]*?>"; 
+	               //定义HTML标签的正则表达式 
 	               String regEx_html = "<[^>]+>"; 
 	               //定义HTML标签的正则表达式 
 	               String regEx_houhtml = "/[^>]+>"; 
-	               //定义HTML标签的正则表达式 
-	               String regEx_spe="\\&[^;]+;";
 	               //定义特殊符号的正则表达式
-	               String regEx_blank=" +";
+	               String regEx_spe="\\&[^;]+;";
 	               //定义多个空格的正则表达式
-	               String regEx_table="\t+";
+	               String regEx_blank=" +";
 	               //定义多个制表符的正则表达式
-	               String regEx_enter="\n+";
+	               String regEx_table="\t+";
 	               //定义多个回车的正则表达式
+	               String regEx_enter="\n+";
 	             
 	               BufferedReader br = new BufferedReader(new FileReader(file));//构造一个BufferedReader类来读取文件
 	  	        String s = null;
@@ -480,15 +411,12 @@ public class IndexManager{
 	    }
     
    
-    
-    
-   
     /**
      * 过滤目录下的文件
      * @param dirPath 想要获取文件的目录
      * @return 返回文件list
      */
-    public static List<File> getFileList(String dirPath) {
+		public static List<File> getFileList(String dirPath) {
         File[] files = new File(dirPath).listFiles();
         List<File> fileList = new ArrayList<File>();
         for (File file : files) {
@@ -499,11 +427,11 @@ public class IndexManager{
         return fileList;
     }
     /**
-     * 判断是否为目标文件，目前支持txt xls doc格式
+     * 判断是否为目标文件，目前支持txt xls doc pdf ppt html等格式
      * @param fileName 文件名称
      * @return 如果是文件类型满足过滤条件，返回true；否则返回false
      */
-    public static boolean isTarFile(String fileName) {
+    private static boolean isTarFile(String fileName) {
         if (fileName.lastIndexOf(".txt") > 0) {
             return true;
         }else if (fileName.lastIndexOf(".xls") > 0) {
@@ -524,17 +452,10 @@ public class IndexManager{
             return true;
         }else if (fileName.lastIndexOf(".htm") > 0) {
             return true;
-        }else if (fileName.lastIndexOf(".xhtml") > 0) {
-            return true;
-        }
-        else return false;
+        }else return false;
     }
     
-    public static void closeWriter() throws Exception {
-        if (indexWriter != null) {
-            indexWriter.close();
-        }
-    }
+  
     /**
      * 删除文件目录下的所有文件
      * @param file 要删除的文件目录
@@ -557,14 +478,16 @@ public class IndexManager{
     }
     public static void main(String[] args) throws Exception{
         File fileIndex = new File(INDEX_DIR);
-        if(deleteDir(fileIndex)){
-            fileIndex.mkdir();
-        }else{
-            fileIndex.mkdir();
-        }
-        List<File> fs=getFileList(INDEX_DIR);
-        for (File file : fs)
-        	file.delete();
+        deleteDir(fileIndex);
+            fileIndex.mkdirs();
+//        }else{
+//            fileIndex.mkdir();
+//        }
+//        List<File> fs=getFileList(INDEX_DIR);
+//        for (File file : fs){
+//        	 System.out.println("fgsagfsgs");
+//        	file.delete();
+//        }
         createIndex(DATA_DIR);
     }
 }
